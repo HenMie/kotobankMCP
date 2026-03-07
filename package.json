@@ -11,11 +11,14 @@
     ".agents/skills"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run build:server && npm run build:skill",
+    "build:server": "tsc -p tsconfig.json",
+    "build:skill": "node ./scripts/build-skill-cli.mjs",
     "dev": "tsx src/index.ts",
     "prepare": "npm run build",
     "start": "node dist/index.js",
     "test": "vitest run",
+    "test:packaged-skill": "node ./scripts/test-packaged-skill.mjs",
     "test:live": "RUN_LIVE_KOTOBANK_TESTS=1 vitest run tests/live.smoke.test.ts"
   },
   "repository": {
@@ -37,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
+    "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

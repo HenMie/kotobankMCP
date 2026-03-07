@@ -1,6 +1,6 @@
 ---
 name: kotobank-japanese-dictionary
-description: Use this skill when the user wants to look up a Japanese word / 日语查词, reading, meaning, usage, dictionary source, Kotobank candidate disambiguation, or a Chinese explanation based on kotobank_lookup and kotobank_search.
+description: Use this skill when the user wants to look up a Japanese word / 日语查词, reading, meaning, usage, dictionary source, Kotobank candidate disambiguation, or a Chinese explanation by running the bundled Kotobank CLI directly from this skill package.
 ---
 
 # Kotobank Japanese Dictionary
@@ -14,28 +14,35 @@ Use this skill when the user wants any of the following:
 - Disambiguate multiple Kotobank candidates before choosing one
 - Get the final explanation in Chinese with the original Japanese headword
 
-## Required tools
+## Runtime requirement
 
-- `kotobank_lookup`
-- `kotobank_search`
+- Node.js 20+
+
+## Built-in program
+
+Run the bundled CLI in `scripts/kotobank-cli.mjs`.
+
+- Main entry: `node scripts/kotobank-cli.mjs lookup --query <text>`
+- Candidate search: `node scripts/kotobank-cli.mjs search --query <text>`
+- For flag details, read `references/cli-usage.md`
 
 ## Default workflow
 
-1. Start with `kotobank_lookup`.
-2. Always pass `query`.
-3. Default `maxEntries` to `2` or `3`.
-4. Keep `includeExcerpt` unset or `false` unless the user explicitly asks for longer excerpts.
-5. If `needsDisambiguation` is `false`, write the final answer directly from the returned entries.
+1. Start with `node scripts/kotobank-cli.mjs lookup --query <text>`.
+2. Always pass `--query`.
+3. Default `--max-entries` to `3` unless the user wants fewer or more dictionary entries.
+4. Keep `--include-excerpt` off unless the user explicitly asks for longer excerpts.
+5. If `needsDisambiguation` is `false`, write the final answer directly from the returned JSON.
 
 ## Disambiguation workflow
 
-When `kotobank_lookup` returns `needsDisambiguation: true`:
+When `lookup` returns `needsDisambiguation: true`:
 
-1. Run `kotobank_search` for the same query.
+1. Run `node scripts/kotobank-cli.mjs search --query <text>` for the same query.
 2. Compare the top candidates by `title`, `dictionaryName`, `canonicalUrl`, and, when useful, `anchorId`.
 3. Prefer explaining differences between candidates instead of picking one silently.
 4. Ask the user to choose when multiple candidates remain plausible.
-5. After the user chooses, call `kotobank_lookup` again with the chosen `canonicalUrl` and optional `anchorId`.
+5. After the user chooses, run `lookup` again with `--canonical-url` and optional `--anchor-id`.
 
 ## Output requirements
 

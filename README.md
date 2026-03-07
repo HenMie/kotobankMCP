@@ -4,22 +4,23 @@
 
 ![Node >=20](https://img.shields.io/badge/node-%3E%3D20-43853d)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
-![MCP](https://img.shields.io/badge/MCP-stdio-7b61ff)
+![Skill](https://img.shields.io/badge/skill-self--contained-7b61ff)
 
-An installable Kotobank MCP server plus a platform-agnostic agent skill package
-for Japanese dictionary lookup.
+A self-contained Kotobank skill package for Japanese dictionary lookup, plus an
+optional MCP compatibility server.
 
 ## Overview
 
-`kotobankMCP` ships two artifacts:
+`kotobankMCP` now ships two artifacts with different roles:
 
-- `kotobank-mcp`: a `stdio` MCP server exposing `kotobank_search` and
-  `kotobank_lookup`
-- `.agents/skills/kotobank-japanese-dictionary/`: a reusable skill package with
-  `SKILL.md` that teaches agents when and how to use the MCP
+- `.agents/skills/kotobank-japanese-dictionary/`: the primary deliverable, a
+  generic skill package with a bundled Node CLI
+- `kotobank-mcp`: an optional `stdio` MCP server for platforms that still prefer
+  an MCP integration
 
-The skill is not a platform-specific manifest. It is a generic skill folder that
-can be copied into any AI platform that supports agent-style skills.
+The skill no longer depends on external MCP tools to perform lookup. After the
+skill folder is installed, the bundled CLI can search and look up Kotobank
+entries directly.
 
 The lookup pipeline stays explicit:
 
@@ -28,32 +29,86 @@ The lookup pipeline stays explicit:
 No silent fallback is added. Empty results, ambiguity, network failures, and DOM
 changes are surfaced as explicit errors or disambiguation responses.
 
-## Key Capabilities
+## Install the Skill Package
 
-- Exposes `kotobank_search` for ranked Kotobank candidate discovery
-- Exposes `kotobank_lookup` for structured Japanese dictionary entries
-- Bundles one generic skill for lookup, disambiguation, and Chinese answer
-  formatting
-- Keeps MCP and skill responsibilities separate: MCP provides tools, skill
-  provides usage guidance
-- Preserves explicit disambiguation with `canonicalUrl` and optional `anchorId`
+The packaged skill source of truth is:
 
-## Install the MCP
+```text
+.agents/skills/kotobank-japanese-dictionary/
+```
 
-### Run directly from GitHub
+The delivered structure is:
+
+```text
+kotobank-japanese-dictionary/
+├── SKILL.md
+├── references/
+│   └── cli-usage.md
+└── scripts/
+    └── kotobank-cli.mjs
+```
+
+### One-shot install from GitHub
+
+```bash
+npm exec --yes --package=github:HenMie/kotobankMCP \
+  kotobank-mcp-install-skills -- --target ~/.agents/skills
+```
+
+After installation, the target root contains:
+
+```text
+~/.agents/skills/
+└── kotobank-japanese-dictionary/
+    ├── SKILL.md
+    ├── references/
+    └── scripts/
+```
+
+### Copy into a skills root after package install
+
+```bash
+kotobank-mcp-install-skills --target ~/.agents/skills
+```
+
+### Run the bundled CLI directly
+
+```bash
+node ~/.agents/skills/kotobank-japanese-dictionary/scripts/kotobank-cli.mjs \
+  lookup --query 食べる --max-entries 2
+```
+
+```bash
+node ~/.agents/skills/kotobank-japanese-dictionary/scripts/kotobank-cli.mjs \
+  search --query 科学
+```
+
+The CLI prints JSON to `stdout`. On failure, it prints a JSON error payload to
+`stderr` and exits with a non-zero status.
+
+## Skill Behavior
+
+The bundled skill uses the local CLI instead of external MCP tools.
+
+- `lookup` is the default entrypoint
+- `search` is used for explicit candidate comparison and disambiguation
+- ambiguity is returned as structured JSON with `needsDisambiguation: true`
+- final answers should be organized as Chinese explanation + Japanese headword /
+  reading + source dictionaries + Kotobank link
+
+See `references/cli-usage.md` inside the skill package for the supported CLI
+flags.
+
+## Optional MCP Compatibility
+
+If a platform still prefers MCP, this repository also ships an optional MCP
+server:
 
 ```bash
 npx --yes --package=github:HenMie/kotobankMCP kotobank-mcp
 ```
 
-### Install globally
-
-```bash
-npm install -g github:HenMie/kotobankMCP
-kotobank-mcp
-```
-
-### Example MCP host config
+Example host config:
 
 ```json
 {
@@ -70,102 +125,6 @@ kotobank-mcp
 }
 ```
 
-## Install the Skill Package
-
-The packaged skill source of truth is:
-
-```text
-.agents/skills/kotobank-japanese-dictionary/
-```
-
-The minimum structure is:
-
-```text
-kotobank-japanese-dictionary/
-├── SKILL.md
-├── references/        # optional
-└── scripts/           # optional
-```
-
-This repository currently ships one skill directory with a required `SKILL.md`
-and no platform-specific metadata.
-
-### Copy the packaged skill into a skills root
-
-```bash
-kotobank-mcp-install-skills --target ~/.agents/skills
-```
-
-After installation, the target root contains:
-
-```text
-~/.agents/skills/
-└── kotobank-japanese-dictionary/
-    └── SKILL.md
-```
-
-### One-shot install from GitHub
-
-```bash
-npm exec --yes --package=github:HenMie/kotobankMCP \
-  kotobank-mcp-install-skills -- --target ~/.agents/skills
-```
-
-### Overwrite an existing installed skill
-
-```bash
-kotobank-mcp-install-skills --target ~/.agents/skills --force
-```
-
-## MCP Tools
-
-### `kotobank_search`
-
-Input:
-
-```json
-{
-  "query": "科学",
-  "dictionaryScope": "jp-monolingual",
-  "maxResults": 8
-}
-```
-
-Output shape:
-
-```json
-{
-  "query": "科学",
-  "totalCandidates": 3,
-  "candidates": [
-    {
-      "title": "科学【かがく】",
-      "dictionaryName": "デジタル大辞泉",
-      "canonicalUrl": "https://kotobank.jp/word/科学-43288",
-      "anchorId": "w-1234567",
-      "pathType": "word",
-      "score": 12345
-    }
-  ]
-}
-```
-
-### `kotobank_lookup`
-
-Input:
-
-```json
-{
-  "query": "食べる",
-  "maxEntries": 2,
-  "includeExcerpt": false
-}
-```
-
-If the query is ambiguous, the tool returns `needsDisambiguation: true` and a
-ranked `candidates` array. Pass the chosen `canonicalUrl` and optional
-`anchorId` back into `kotobank_lookup` to resolve the exact target.
-
 ## Development
 
 ```bash
@@ -174,10 +133,11 @@ npm run build
 npm test
 ```
 
-Run the live smoke tests against the real site:
+Run live smoke tests against the real site:
 
 ```bash
 npm run test:live
+npm run test:packaged-skill
 ```
 
 ## Project Structure
@@ -187,10 +147,11 @@ kotobankMCP/
 ├── .agents/
 │   └── skills/
 │       └── kotobank-japanese-dictionary/
-│           └── SKILL.md
+│           ├── SKILL.md
+│           ├── references/
+│           └── scripts/
+├── scripts/
 ├── src/
-│   ├── install-skills.ts
-│   └── kotobank/
 ├── tests/
 ├── package.json
 ├── README.md

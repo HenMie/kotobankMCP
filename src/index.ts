@@ -2,15 +2,11 @@
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { MemoryCache } from "./cache.js";
-import { createHtmlFetcher } from "./http.js";
-import { createKotobankService } from "./kotobank/service.js";
+import { createDefaultKotobankService } from "./runtime-service.js";
 import { createServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const cache = new MemoryCache<string>();
-  const htmlFetcher = createHtmlFetcher({ cache });
-  const service = createKotobankService({ htmlFetcher });
+  const service = createDefaultKotobankService();
   const server = createServer({ service });
   const transport = new StdioServerTransport();
 

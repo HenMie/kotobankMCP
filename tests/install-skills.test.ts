@@ -31,10 +31,13 @@ describe("installSkills", () => {
     const targetDir = await createTempDirectory("skills-target-");
     const skillDir = path.join(sourceDir, "kotobank-japanese-dictionary");
     const referencesDir = path.join(skillDir, "references");
+    const scriptsDir = path.join(skillDir, "scripts");
 
     await mkdir(referencesDir, { recursive: true });
+    await mkdir(scriptsDir, { recursive: true });
     await writeFile(path.join(skillDir, "SKILL.md"), "---\nname: test\n---\n");
     await writeFile(path.join(referencesDir, "example.md"), "example");
+    await writeFile(path.join(scriptsDir, "tool.mjs"), "console.log('ok');");
 
     await installSkills({
       sourceDir,
@@ -49,6 +52,10 @@ describe("installSkills", () => {
     await expectFile(
       path.join(targetDir, "kotobank-japanese-dictionary", "references", "example.md"),
       "example",
+    );
+    await expectFile(
+      path.join(targetDir, "kotobank-japanese-dictionary", "scripts", "tool.mjs"),
+      "console.log('ok');",
     );
   });
 });
