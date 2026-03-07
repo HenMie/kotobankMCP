@@ -6,47 +6,37 @@
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
 ![MCP](https://img.shields.io/badge/MCP-stdio-7b61ff)
 
-一个可直接安装的 MCP 服务端，以及随仓库交付的日语查词 workflow
-skills，用于从 [Kotobank](https://kotobank.jp) 获取结构化日语词典结果。
+一个可安装的 Kotobank MCP 服务端，加上一份平台无关的通用 agent skill
+包，用于日语查词。
 
 ## 项目简介
 
-`kotobankMCP` 提供一条面向本机使用的日语查词链路：
+`kotobankMCP` 交付两类成果：
 
-- `kotobank_search`：搜索 Kotobank 并排序候选词条
-- `kotobank_lookup`：把查询解析成结构化词典条目
-- `skills/`：提供查词、消歧、中文释义整理的工作流文档
+- `kotobank-mcp`：一个 `stdio` MCP server，提供 `kotobank_search` 与
+  `kotobank_lookup`
+- `.agents/skills/kotobank-japanese-dictionary/`：一个通用 skill 目录，
+  通过 `SKILL.md` 告诉 agent 何时以及如何调用这个 MCP
 
-首版链路固定为：
+这里的 skill 不是平台私有 manifest，而是可复制到支持 agent-style
+skills 的 AI 平台中的通用技能包。
+
+查词链路保持显式：
 
 `Kotobank search → 候选排序 → canonical 词条页抓取 → article / anchor 解析 → 结构化结果`
 
-项目不会做静默 fallback。无结果、候选歧义、网络异常、DOM 结构变化，都会显式返回错误或 `needsDisambiguation`。
-
-## 仓库内容
-
-- `src/`：MCP 服务端、抓取器、解析器、排序逻辑、skills 安装器
-- `skills/`：项目级 workflow 资产，不依赖平台专属技能协议
-- `tests/`：解析 fixture、排序测试、服务测试、真实站点烟测
+项目不会做静默 fallback。无结果、候选歧义、网络异常、DOM 结构变化，
+都会显式返回错误或消歧响应。
 
 ## 关键能力
 
-- 提供 `kotobank_search`，输入支持 `query`、`dictionaryScope`、`maxResults`
-- 提供 `kotobank_lookup`，支持 `preferredDictionaries`、`maxEntries`、`includeExcerpt`，以及显式选择用的 `canonicalUrl` / `anchorId`
-- 默认优先 `/word/` 路径和日语单语辞典结果
-- 当高分候选过于接近时返回 `needsDisambiguation: true`，而不是替用户猜词
-- 解析词条页中的 `page_link_marker` 与 `article.dictype` 映射关系
-- 仅保留进程内短 TTL 缓存与请求去重，不做持久化全文缓存
+- 提供 `kotobank_search` 用于搜索并排序 Kotobank 候选
+- 提供 `kotobank_lookup` 用于解析结构化日语词典条目
+- 内置 1 个通用 skill，覆盖查词、消歧和中文答案整理
+- 严格区分 MCP 与 skill 职责：MCP 提供工具，skill 提供调用策略
+- 保留显式消歧能力，支持 `canonicalUrl` 和可选 `anchorId`
 
-## 系统组件
-
-- `src/index.ts`：`stdio` MCP 入口
-- `src/server.ts`：工具注册与结构化错误输出
-- `src/kotobank/search-parser.ts`：搜索结果解析
-- `src/kotobank/word-parser.ts`：词条页解析
-- `src/install-skills.ts`：把仓库内 skills 安装到任意目录
-
-## 快速开始
+## 安装 MCP
 
 ### 直接从 GitHub 运行
 
@@ -78,7 +68,54 @@ kotobank-mcp
 }
 ```
 
-## 工具说明
+## 安装通用 Skill 包
+
+包内 skill 的正式目录是：
+
+```text
+.agents/skills/kotobank-japanese-dictionary/
+```
+
+最小结构是：
+
+```text
+kotobank-japanese-dictionary/
+├── SKILL.md
+├── references/        # 可选
+└── scripts/           # 可选
+```
+
+当前仓库只交付 1 个 skill 目录，包含必须的 `SKILL.md`，不包含平台专属
+metadata。
+
+### 复制到宿主的 skills 根目录
+
+```bash
+kotobank-mcp-install-skills --target ~/.agents/skills
+```
+
+安装后，目标目录结构如下：
+
+```text
+~/.agents/skills/
+└── kotobank-japanese-dictionary/
+    └── SKILL.md
+```
+
+### 直接从 GitHub 一次性安装
+
+```bash
+npm exec --yes --package=github:HenMie/kotobankMCP \
+  kotobank-mcp-install-skills -- --target ~/.agents/skills
+```
+
+### 覆盖已安装 skill
+
+```bash
+kotobank-mcp-install-skills --target ~/.agents/skills --force
+```
+
+## MCP 工具
 
 ### `kotobank_search`
 
@@ -123,36 +160,9 @@ kotobank-mcp
 }
 ```
 
-如果候选存在歧义，工具会返回 `needsDisambiguation: true` 和排好序的 `candidates`。宿主可把选中的 `canonicalUrl` 与可选 `anchorId` 再传回 `kotobank_lookup`，实现精确解析。
-
-## 项目内 Skills
-
-这些 skills 是仓库交付物的一部分，可安装到任意目录。它们是给宿主 Agent 用的工作流文档，不是 Codex 专属技能清单。
-
-内置文件：
-
-- `lookup-japanese-word.md`
-- `disambiguate-kotobank-result.md`
-- `explain-japanese-word-in-chinese.md`
-
-### 安装 skills
-
-```bash
-kotobank-mcp-install-skills --target ./skills
-```
-
-如果不想先全局安装，可直接一次性执行：
-
-```bash
-npm exec --yes --package=github:HenMie/kotobankMCP \
-  kotobank-mcp-install-skills -- --target ./skills
-```
-
-如需覆盖已有文件：
-
-```bash
-kotobank-mcp-install-skills --target ./skills --force
-```
+如果查询存在歧义，工具会返回 `needsDisambiguation: true` 和排序后的
+`candidates`。宿主可把选中的 `canonicalUrl` 与可选 `anchorId` 再传回
+`kotobank_lookup`，实现精确解析。
 
 ## 开发与验证
 
@@ -160,12 +170,6 @@ kotobank-mcp-install-skills --target ./skills --force
 npm install
 npm run build
 npm test
-```
-
-本地启动服务：
-
-```bash
-npm run start
 ```
 
 运行真实站点烟测：
@@ -178,21 +182,18 @@ npm run test:live
 
 ```text
 kotobankMCP/
-├── skills/
+├── .agents/
+│   └── skills/
+│       └── kotobank-japanese-dictionary/
+│           └── SKILL.md
 ├── src/
 │   ├── install-skills.ts
-│   ├── server.ts
 │   └── kotobank/
 ├── tests/
 ├── package.json
-└── README.md
+├── README.md
+└── README.zh.md
 ```
-
-## 说明
-
-- 项目首要目标是个人、本机 MCP 查词使用场景
-- 搜索适配层当前直接读取 Kotobank 搜索页，并已与解析逻辑隔离，方便后续替换
-- v1 不附带持久化缓存，也不内置离线词库
 
 ## 许可证
 
