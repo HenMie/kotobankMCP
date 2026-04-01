@@ -1,6 +1,6 @@
 {
   "name": "kotobank-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cloud-deployable HTTP-only MCP service for Kotobank dictionary lookup",
   "type": "module",
   "bin": {
