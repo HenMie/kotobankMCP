@@ -37,7 +37,46 @@
 
 ## 快速开始
 
-### 本地开发
+### 推荐方式：Docker Compose + 已发布镜像
+
+现在默认推荐的部署方式是 **Docker Compose + Docker Hub 已发布镜像**：
+
+```text
+chouann/kotobank-mcp:latest
+```
+
+1. 复制环境变量模板：
+
+```bash
+cp .env.example .env
+```
+
+2. 编辑 `.env`，把 `KOTOBANK_AUTH_TOKEN` 改成你自己的值。
+
+3. 启动服务：
+
+```bash
+docker compose up -d
+```
+
+4. 检查健康状态：
+
+```bash
+curl -i http://127.0.0.1:3000/healthz
+curl -i http://127.0.0.1:3000/readyz
+```
+
+5. 停止服务：
+
+```bash
+docker compose down
+```
+
+仓库自带的 `docker-compose.yml` 默认会拉取
+`chouann/kotobank-mcp:latest`。如果你想固定其他版本，可以在 `.env`
+里覆盖 `KOTOBANK_MCP_IMAGE`。
+
+### 从源码本地开发
 
 ```bash
 npm install
@@ -49,7 +88,7 @@ npm run dev:http
 - 监听 `http://127.0.0.1:8080`，除非设置了 `KOTOBANK_PORT` 或 `PORT`
 - `NODE_ENV=development` 下默认关闭鉴权
 
-### 本地模拟生产运行
+### 从源码本地模拟生产运行
 
 ```bash
 npm install
@@ -57,12 +96,14 @@ npm run build
 NODE_ENV=production KOTOBANK_AUTH_TOKEN=replace-me KOTOBANK_PORT=3000 node dist/index.js
 ```
 
-### Docker
+### 直接用 Docker 运行
 
 ```bash
-npm run docker:build
-
-docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN=replace-me   kotobank-mcp-service
+docker run --rm \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e KOTOBANK_AUTH_TOKEN=replace-me \
+  chouann/kotobank-mcp:latest
 ```
 
 健康检查：
@@ -98,7 +139,7 @@ curl -i http://127.0.0.1:3000/readyz
 - 当前缓存是**单进程内存缓存**。
 - 如果做横向扩容而不接共享缓存，不同副本之间不会共享热缓存。
 
-详见：
+推荐部署细节见：
 
 - [部署指南](docs/deployment.zh.md)
 - [迁移说明](docs/migration.zh.md)

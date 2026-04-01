@@ -39,7 +39,46 @@ DOM drift are surfaced explicitly.
 
 ## Quick start
 
-### Local development
+### Recommended: Docker Compose with the published image
+
+The default deployment path is now **Docker Compose + the published Docker Hub
+image**:
+
+```text
+chouann/kotobank-mcp:latest
+```
+
+1. Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+2. Edit `.env` and replace `KOTOBANK_AUTH_TOKEN`.
+
+3. Start the service:
+
+```bash
+docker compose up -d
+```
+
+4. Verify health:
+
+```bash
+curl -i http://127.0.0.1:3000/healthz
+curl -i http://127.0.0.1:3000/readyz
+```
+
+5. Stop it when needed:
+
+```bash
+docker compose down
+```
+
+The bundled `docker-compose.yml` pulls `chouann/kotobank-mcp:latest` by default.
+You can pin another tag by overriding `KOTOBANK_MCP_IMAGE` in `.env`.
+
+### Local development from source
 
 ```bash
 npm install
@@ -51,7 +90,7 @@ Default development mode:
 - listens on `http://127.0.0.1:8080` unless `KOTOBANK_PORT` or `PORT` is set
 - auth disabled by default in `NODE_ENV=development`
 
-### Production-like local run
+### Production-like local run from source
 
 ```bash
 npm install
@@ -59,12 +98,14 @@ npm run build
 NODE_ENV=production KOTOBANK_AUTH_TOKEN=replace-me KOTOBANK_PORT=3000 node dist/index.js
 ```
 
-### Docker
+### Direct Docker run
 
 ```bash
-npm run docker:build
-
-docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN=replace-me   kotobank-mcp-service
+docker run --rm \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e KOTOBANK_AUTH_TOKEN=replace-me \
+  chouann/kotobank-mcp:latest
 ```
 
 Health checks:
@@ -100,7 +141,7 @@ curl -i http://127.0.0.1:3000/readyz
 - The current cache is process-local memory only.
 - Horizontal scale without a shared cache will reduce cache hit rate across replicas.
 
-See:
+Recommended deployment details:
 
 - [Deployment guide](docs/deployment.md)
 - [Migration notes](docs/migration.md)

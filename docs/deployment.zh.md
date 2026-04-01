@@ -36,12 +36,47 @@ KOTOBANK_PORT=3000
 
 生产模式下默认要求鉴权。如果 token 缺失，进程会在启动时显式失败。
 
-## Docker 构建与运行
+## 推荐方式：Docker Compose + 已发布镜像
 
 ```bash
-docker build -t kotobank-mcp-service .
+cp .env.example .env
+# 编辑 .env，填写 KOTOBANK_AUTH_TOKEN
+docker compose up -d
+```
 
-docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN=replace-me   kotobank-mcp-service
+仓库自带的 Compose 文件默认使用：
+
+```text
+chouann/kotobank-mcp:latest
+```
+
+默认行为：
+
+- 对外暴露 `HOST_PORT`，默认 `3000`
+- 容器内部监听端口固定为 `3000`
+- 默认要求 Bearer 鉴权
+- 使用 `unless-stopped` 自动重启策略
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+如果要固定某个版本 tag：
+
+```bash
+KOTOBANK_MCP_IMAGE=chouann/kotobank-mcp:v0.1.1 docker compose up -d
+```
+
+## 直接用 Docker 运行
+
+```bash
+docker run --rm \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e KOTOBANK_AUTH_TOKEN=replace-me \
+  chouann/kotobank-mcp:latest
 ```
 
 ## GitHub Actions -> Docker Hub
@@ -58,12 +93,11 @@ docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN
 
 - secret `DOCKERHUB_USERNAME`
 - secret `DOCKERHUB_TOKEN`
-- 可选 repository variable `DOCKERHUB_IMAGE`
 
-如果没有设置 `DOCKERHUB_IMAGE`，workflow 默认会使用：
+workflow 推送的镜像名固定为：
 
 ```text
-<DOCKERHUB_USERNAME>/kotobank-mcp
+chouann/kotobank-mcp
 ```
 
 ## 健康检查与就绪检查

@@ -37,12 +37,47 @@ KOTOBANK_PORT=3000
 Auth is required by default in production mode. If the token is missing, the
 process fails fast at startup.
 
-## Docker build and run
+## Recommended: Docker Compose with the published image
 
 ```bash
-docker build -t kotobank-mcp-service .
+cp .env.example .env
+# edit .env and set KOTOBANK_AUTH_TOKEN
+docker compose up -d
+```
 
-docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN=replace-me   kotobank-mcp-service
+The bundled Compose file uses:
+
+```text
+chouann/kotobank-mcp:latest
+```
+
+Default Compose behavior:
+
+- publishes `HOST_PORT` on the host, default `3000`
+- keeps the container listen port fixed at `3000`
+- requires bearer auth by default
+- restarts automatically with `unless-stopped`
+
+To stop:
+
+```bash
+docker compose down
+```
+
+To pin a different tag:
+
+```bash
+KOTOBANK_MCP_IMAGE=chouann/kotobank-mcp:v0.1.1 docker compose up -d
+```
+
+## Direct Docker run
+
+```bash
+docker run --rm \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e KOTOBANK_AUTH_TOKEN=replace-me \
+  chouann/kotobank-mcp:latest
 ```
 
 ## GitHub Actions -> Docker Hub
@@ -59,12 +94,9 @@ Required GitHub repository configuration:
 
 - secret `DOCKERHUB_USERNAME`
 - secret `DOCKERHUB_TOKEN`
-- optional repository variable `DOCKERHUB_IMAGE`
-
-If `DOCKERHUB_IMAGE` is not set, the workflow defaults to:
 
 ```text
-<DOCKERHUB_USERNAME>/kotobank-mcp
+chouann/kotobank-mcp
 ```
 
 ## Health and readiness

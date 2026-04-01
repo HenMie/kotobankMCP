@@ -16,7 +16,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     env:
-      DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE != '' && vars.DOCKERHUB_IMAGE || format('{0}/kotobank-mcp', secrets.DOCKERHUB_USERNAME) }}
+      DOCKERHUB_IMAGE: chouann/kotobank-mcp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,11 +34,6 @@ jobs:
             echo "::error::Missing secret DOCKERHUB_TOKEN"
             exit 1
           }
-          test -n "${DOCKERHUB_IMAGE}" || {
-            echo "::error::Missing Docker image name. Set repository variable DOCKERHUB_IMAGE or DOCKERHUB_USERNAME."
-            exit 1
-          }
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
