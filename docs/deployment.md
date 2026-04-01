@@ -41,7 +41,7 @@ process fails fast at startup.
 
 ```bash
 cp .env.example .env
-# edit .env and set KOTOBANK_AUTH_TOKEN
+# edit .env
 docker compose up -d
 ```
 
@@ -55,8 +55,17 @@ Default Compose behavior:
 
 - publishes `HOST_PORT` on the host, default `3000`
 - keeps the container listen port fixed at `3000`
-- requires bearer auth by default
+- defaults to `KOTOBANK_AUTH_MODE=required`
 - restarts automatically with `unless-stopped`
+
+Auth guidance:
+
+- recommended internet-facing setup:
+  - `KOTOBANK_AUTH_MODE=required`
+  - non-empty `KOTOBANK_AUTH_TOKEN`
+- no-token setup:
+  - `KOTOBANK_AUTH_MODE=disabled`
+  - `KOTOBANK_AUTH_TOKEN=` may stay empty
 
 To stop:
 

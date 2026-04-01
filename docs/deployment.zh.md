@@ -40,7 +40,7 @@ KOTOBANK_PORT=3000
 
 ```bash
 cp .env.example .env
-# 编辑 .env，填写 KOTOBANK_AUTH_TOKEN
+# 编辑 .env
 docker compose up -d
 ```
 
@@ -54,8 +54,17 @@ chouann/kotobank-mcp:latest
 
 - 对外暴露 `HOST_PORT`，默认 `3000`
 - 容器内部监听端口固定为 `3000`
-- 默认要求 Bearer 鉴权
+- 默认使用 `KOTOBANK_AUTH_MODE=required`
 - 使用 `unless-stopped` 自动重启策略
+
+鉴权建议：
+
+- 推荐公网部署：
+  - `KOTOBANK_AUTH_MODE=required`
+  - `KOTOBANK_AUTH_TOKEN` 填非空值
+- 如果你明确要无 token：
+  - `KOTOBANK_AUTH_MODE=disabled`
+  - `KOTOBANK_AUTH_TOKEN=` 可以留空
 
 停止服务：
 

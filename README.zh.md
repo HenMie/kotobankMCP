@@ -51,7 +51,14 @@ chouann/kotobank-mcp:latest
 cp .env.example .env
 ```
 
-2. 编辑 `.env`，把 `KOTOBANK_AUTH_TOKEN` 改成你自己的值。
+2. 编辑 `.env`。
+
+   - 如果是公网/正式部署，保持：
+     - `KOTOBANK_AUTH_MODE=required`
+     - 并填写非空 `KOTOBANK_AUTH_TOKEN`
+   - 如果你明确想不设 token，就改成：
+     - `KOTOBANK_AUTH_MODE=disabled`
+     - 同时让 `KOTOBANK_AUTH_TOKEN=` 保持空
 
 3. 启动服务：
 
@@ -122,7 +129,7 @@ curl -i http://127.0.0.1:3000/readyz
 | `KOTOBANK_PORT` | `8080` | 服务端口 |
 | `PORT` | 未设置 | 云平台常见端口回退值 |
 | `KOTOBANK_AUTH_MODE` | 开发环境 `disabled`，生产环境 `required` | `/mcp` 的 Bearer 鉴权策略 |
-| `KOTOBANK_AUTH_TOKEN` | 未设置 | 当 auth mode 为 `required` 时必填 |
+| `KOTOBANK_AUTH_TOKEN` | 空字符串 | 只有在 auth mode 为 `disabled` 时才可以留空；auth mode 为 `required` 时必填 |
 | `KOTOBANK_LOG_LEVEL` | `info` | 结构化日志级别 |
 | `KOTOBANK_REQUEST_TIMEOUT_MS` | `15000` | 上游 Kotobank 请求超时 |
 | `KOTOBANK_SHUTDOWN_GRACE_PERIOD_MS` | `10000` | 优雅退出时间预算 |

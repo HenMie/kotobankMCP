@@ -54,7 +54,14 @@ chouann/kotobank-mcp:latest
 cp .env.example .env
 ```
 
-2. Edit `.env` and replace `KOTOBANK_AUTH_TOKEN`.
+2. Edit `.env`.
+
+   - For public or internet-facing deployment, keep:
+     - `KOTOBANK_AUTH_MODE=required`
+     - and set a non-empty `KOTOBANK_AUTH_TOKEN`
+   - If you explicitly want no token, set:
+     - `KOTOBANK_AUTH_MODE=disabled`
+     - and leave `KOTOBANK_AUTH_TOKEN=` empty
 
 3. Start the service:
 
@@ -124,7 +131,7 @@ curl -i http://127.0.0.1:3000/readyz
 | `KOTOBANK_PORT` | `8080` | Service port |
 | `PORT` | unset | Fallback port for cloud platforms |
 | `KOTOBANK_AUTH_MODE` | `disabled` in dev, `required` in prod | Bearer auth policy for `/mcp` |
-| `KOTOBANK_AUTH_TOKEN` | unset | Required when auth mode is `required` |
+| `KOTOBANK_AUTH_TOKEN` | empty | May be empty only when auth mode is `disabled`; required when auth mode is `required` |
 | `KOTOBANK_LOG_LEVEL` | `info` | Structured log verbosity |
 | `KOTOBANK_REQUEST_TIMEOUT_MS` | `15000` | Upstream Kotobank request timeout |
 | `KOTOBANK_SHUTDOWN_GRACE_PERIOD_MS` | `10000` | Graceful shutdown budget |
