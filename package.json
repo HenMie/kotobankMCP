@@ -1,24 +1,28 @@
 {
   "name": "kotobank-mcp",
   "version": "0.1.0",
+  "description": "Cloud-deployable HTTP-only MCP service for Kotobank dictionary lookup",
   "type": "module",
   "bin": {
-    "kotobank-mcp": "./dist/index.js",
-    "kotobank-mcp-install-skills": "./dist/install-skills.js"
+    "kotobank-mcp": "./dist/index.js"
   },
   "files": [
     "dist",
-    ".agents/skills"
+    "docs",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "npm run build:server && npm run build:skill",
-    "build:server": "tsc -p tsconfig.json",
-    "build:skill": "node ./scripts/build-skill-cli.mjs",
-    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run dev:http",
+    "dev:http": "tsx src/index.ts",
     "prepare": "npm run build",
-    "start": "node dist/index.js",
+    "start": "npm run start:http",
+    "start:http": "node dist/index.js",
+    "docker:build": "docker build -t kotobank-mcp-service .",
+    "docker:run": "docker run --rm -p 3000:3000 kotobank-mcp-service",
     "test": "vitest run",
-    "test:packaged-skill": "node ./scripts/test-packaged-skill.mjs",
     "test:live": "RUN_LIVE_KOTOBANK_TESTS=1 vitest run tests/live.smoke.test.ts"
   },
   "repository": {
@@ -40,7 +44,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
-    "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

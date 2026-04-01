@@ -1,158 +1,116 @@
 # kotobankMCP
 
-简体中文 | [English](README.md)
+[English](README.md) | 简体中文
 
 ![Node >=20](https://img.shields.io/badge/node-%3E%3D20-43853d)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
-![Skill](https://img.shields.io/badge/skill-self--contained-7b61ff)
+![MCP HTTP](https://img.shields.io/badge/mcp-streamable_http-0a7cff)
 
-一个自包含的 Kotobank 通用 skill 包，外加一个可选的 MCP 兼容服务端。
+这是一个**云端可部署、HTTP-only 的 Kotobank MCP 服务**，用于日语词典查词。
 
-## 项目简介
+## 当前交付物
 
-`kotobankMCP` 现在同时交付两类成果，但定位不同：
+这个仓库现在只以**纯 MCP 服务**为主交付：
 
-- `.agents/skills/kotobank-japanese-dictionary/`：主交付物，一个带内置
-  Node CLI 的通用 skill 包
-- `kotobank-mcp`：可选的 `stdio` MCP server，给仍然偏好 MCP 接入的平台
-  使用
+- 没有前端
+- 不再以本地 skill 包为主
+- 不再以 stdio MCP 为主路径
+- 自带 Docker 部署工件
+- 每个服务进程复用共享 runtime / cache
 
-skill 现在已经不再依赖外部 MCP tools 才能查词。只要 skill 目录被安装好，
-其中的 CLI 就能直接完成 Kotobank 搜索和查词。
+如果你想在手机上使用，它的前提是你有一个**支持远端 MCP 的客户端**。
+普通浏览器页面不能直接替代 MCP 客户端。
 
-查词链路保持显式：
+## HTTP 服务契约
 
-`Kotobank search → 候选排序 → canonical 词条页抓取 → article / anchor 解析 → 结构化结果`
+服务暴露以下端点：
 
-项目不会做静默 fallback。无结果、候选歧义、网络异常、DOM 结构变化，
-都会显式返回错误或消歧响应。
+- `POST /mcp` — Streamable HTTP MCP 主入口
+- `GET /healthz` — 存活检查
+- `GET /readyz` — 就绪检查
 
-## 安装 Skill 包
+词典处理链路仍然保持显式：
 
-包内 skill 的正式目录是：
+`Kotobank search -> candidate ranking -> canonical word page fetch -> article / anchor parsing -> structured result`
 
-```text
-.agents/skills/kotobank-japanese-dictionary/
-```
+不增加 silent fallback。无结果、歧义、上游失败、DOM 漂移都会显式返回。
 
-当前交付结构为：
+## 快速开始
 
-```text
-kotobank-japanese-dictionary/
-├── SKILL.md
-├── references/
-│   └── cli-usage.md
-└── scripts/
-    └── kotobank-cli.mjs
-```
-
-### 直接从 GitHub 一次性安装
+### 本地开发
 
 ```bash
-npm exec --yes --package=github:HenMie/kotobankMCP \
-  kotobank-mcp-install-skills -- --target ~/.agents/skills
+npm install
+npm run dev:http
 ```
 
-安装后，目标目录结构如下：
+默认开发模式行为：
 
-```text
-~/.agents/skills/
-└── kotobank-japanese-dictionary/
-    ├── SKILL.md
-    ├── references/
-    └── scripts/
-```
+- 监听 `http://127.0.0.1:8080`，除非设置了 `KOTOBANK_PORT` 或 `PORT`
+- `NODE_ENV=development` 下默认关闭鉴权
 
-### 已安装包时复制到宿主的 skills 根目录
-
-```bash
-kotobank-mcp-install-skills --target ~/.agents/skills
-```
-
-### 直接运行 skill 内置 CLI
-
-```bash
-node ~/.agents/skills/kotobank-japanese-dictionary/scripts/kotobank-cli.mjs \
-  lookup --query 食べる --max-entries 2
-```
-
-```bash
-node ~/.agents/skills/kotobank-japanese-dictionary/scripts/kotobank-cli.mjs \
-  search --query 科学
-```
-
-CLI 成功时把 JSON 输出到 `stdout`；失败时把 JSON 错误输出到 `stderr`，并
-返回非零退出码。
-
-## Skill 行为
-
-这个 skill 通过本地 CLI 工作，不再依赖外部 MCP tools。
-
-- `lookup` 是默认入口
-- `search` 用于显式查看候选并做消歧
-- 歧义会以 `needsDisambiguation: true` 的结构化 JSON 返回
-- 最终回答应整理成：中文释义 + 日文表记/读音 + 词典来源 + Kotobank 链接
-
-CLI 支持的完整参数见 skill 包里的 `references/cli-usage.md`。
-
-## 可选 MCP 兼容层
-
-如果某个平台仍然更适合 MCP 接入，仓库里也保留了一个可选 MCP server：
-
-```bash
-npx --yes --package=github:HenMie/kotobankMCP kotobank-mcp
-```
-
-宿主配置示例：
-
-```json
-{
-  "mcpServers": {
-    "kotobank": {
-      "command": "npx",
-      "args": [
-        "--yes",
-        "--package=github:HenMie/kotobankMCP",
-        "kotobank-mcp"
-      ]
-    }
-  }
-}
-```
-
-## 开发与验证
+### 本地模拟生产运行
 
 ```bash
 npm install
 npm run build
-npm test
+NODE_ENV=production KOTOBANK_AUTH_TOKEN=replace-me KOTOBANK_PORT=3000 node dist/index.js
 ```
 
-运行真实站点与打包 smoke test：
+### Docker
 
 ```bash
+npm run docker:build
+
+docker run --rm   -p 3000:3000   -e NODE_ENV=production   -e KOTOBANK_AUTH_TOKEN=replace-me   kotobank-mcp-service
+```
+
+健康检查：
+
+```bash
+curl -i http://127.0.0.1:3000/healthz
+curl -i http://127.0.0.1:3000/readyz
+```
+
+## 环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `NODE_ENV` | `development` | `production` 下默认要求鉴权 |
+| `KOTOBANK_HOST` | `0.0.0.0` | 服务绑定地址 |
+| `KOTOBANK_PORT` | `8080` | 服务端口 |
+| `PORT` | 未设置 | 云平台常见端口回退值 |
+| `KOTOBANK_AUTH_MODE` | 开发环境 `disabled`，生产环境 `required` | `/mcp` 的 Bearer 鉴权策略 |
+| `KOTOBANK_AUTH_TOKEN` | 未设置 | 当 auth mode 为 `required` 时必填 |
+| `KOTOBANK_LOG_LEVEL` | `info` | 结构化日志级别 |
+| `KOTOBANK_REQUEST_TIMEOUT_MS` | `15000` | 上游 Kotobank 请求超时 |
+| `KOTOBANK_SHUTDOWN_GRACE_PERIOD_MS` | `10000` | 优雅退出时间预算 |
+| `KOTOBANK_CACHE_MODE` | `memory` | 当前版本仅支持 `memory` |
+| `KOTOBANK_CACHE_TTL_MS` | `300000` | 进程内缓存 TTL |
+| `KOTOBANK_CACHE_MAX_ENTRIES` | `512` | 进程内缓存最大条目数 |
+| `KOTOBANK_RATE_LIMIT_WINDOW_MS` | `60000` | 限流窗口 |
+| `KOTOBANK_RATE_LIMIT_MAX_REQUESTS` | `60` | 每窗口允许的请求数；当前版本不支持 `0` |
+
+## 部署说明
+
+- TLS 应由反向代理 / ingress 终止。
+- 容器内部只提供明文 HTTP。
+- 当前缓存是**单进程内存缓存**。
+- 如果做横向扩容而不接共享缓存，不同副本之间不会共享热缓存。
+
+详见：
+
+- [部署指南](docs/deployment.zh.md)
+- [迁移说明](docs/migration.zh.md)
+
+## 开发与验证
+
+```bash
+npm run build
+npm test
 npm run test:live
-npm run test:packaged-skill
 ```
 
-## 目录结构
+## License
 
-```text
-kotobankMCP/
-├── .agents/
-│   └── skills/
-│       └── kotobank-japanese-dictionary/
-│           ├── SKILL.md
-│           ├── references/
-│           └── scripts/
-├── scripts/
-├── src/
-├── tests/
-├── package.json
-├── README.md
-└── README.zh.md
-```
-
-## 许可证
-
-MIT，见 [LICENSE](LICENSE)。
+MIT。见 [LICENSE](LICENSE)。

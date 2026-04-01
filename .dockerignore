@@ -1,0 +1,9 @@
+.git
+.omx
+.agents
+node_modules
+dist
+coverage
+npm-debug.log*
+.DS_Store
+*.tgz
